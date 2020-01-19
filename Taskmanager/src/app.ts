@@ -140,14 +140,14 @@ class TaskInputForm {
   }
 }
 
-// project lijst class 
+// taken lijst class voor het maken van lijsten waar taken in gezet gaan worden.
 
 class TaskList {
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLElement;
 
-  constructor(private type: 'active' | 'finished') {
+  constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
     this.templateElement = document.getElementById('tasks-list')! as HTMLTemplateElement;
     this.hostElement = document.getElementById('app')! as HTMLDivElement;
 
@@ -171,5 +171,7 @@ class TaskList {
 }
 
 const prjInput = new TaskInputForm();
-const activatePrjList = new TaskList('active');
-const finishedPrjList = new TaskList('finished');
+const toDoTaskList = new TaskList('to do');
+const doingTaskList = new TaskList('doing');
+const verifyTaskList = new TaskList('verify');
+const doneTaskList = new TaskList('done');

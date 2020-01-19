@@ -122,5 +122,7 @@ class TaskList {
     }
 }
 const prjInput = new TaskInputForm();
-const activatePrjList = new TaskList('active');
-const finishedPrjList = new TaskList('finished');
+const toDoTaskList = new TaskList('to do');
+const doingTaskList = new TaskList('doing');
+const verifyTaskList = new TaskList('verify');
+const doneTaskList = new TaskList('done');
