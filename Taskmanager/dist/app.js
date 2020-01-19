@@ -84,10 +84,10 @@ class TaskInputForm {
     }
     submitHandler(event) {
         event.preventDefault();
-        const formInput = this.gatherFormInput();
-        if (Array.isArray(formInput)) {
-            const [title, desc, people] = formInput;
-            console.log(title, desc, people);
+        const taskInput = this.gatherFormInput();
+        if (Array.isArray(taskInput)) {
+            const [title, desc, points] = taskInput;
+            console.log(title, desc, points);
             this.clearForm();
         }
     }
@@ -104,7 +104,7 @@ __decorate([
 class TaskList {
     constructor(type) {
         this.type = type;
-        this.templateElement = document.getElementById('task-list');
+        this.templateElement = document.getElementById('tasks-list');
         this.hostElement = document.getElementById('app');
         const importedHtmlContent = document.importNode(this.templateElement.content, true);
         this.element = importedHtmlContent.firstElementChild;
@@ -115,7 +115,7 @@ class TaskList {
     renderContent() {
         const listId = `${this.type}-tasks-list`;
         this.element.querySelector('ul').id = listId;
-        this.element.querySelector('h2').textContent = this.type.toUpperCase() + ' TAKEN';
+        this.element.querySelector('h2').textContent = this.type.toUpperCase();
     }
     attach() {
         this.hostElement.insertAdjacentElement('beforeend', this.element);

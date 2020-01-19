@@ -123,10 +123,10 @@ class TaskInputForm {
   @autoBind
   private submitHandler(event: Event) {
     event.preventDefault();
-    const formInput = this.gatherFormInput();
-    if (Array.isArray(formInput)) {
-      const [title, desc, people] = formInput;
-      console.log(title, desc, people)
+    const taskInput = this.gatherFormInput();
+    if (Array.isArray(taskInput)) {
+      const [title, desc, points] = taskInput;
+      console.log(title, desc, points)
       this.clearForm();
     }
   }
@@ -148,7 +148,7 @@ class TaskList {
   element: HTMLElement;
 
   constructor(private type: 'active' | 'finished') {
-    this.templateElement = document.getElementById('task-list')! as HTMLTemplateElement;
+    this.templateElement = document.getElementById('tasks-list')! as HTMLTemplateElement;
     this.hostElement = document.getElementById('app')! as HTMLDivElement;
 
     const importedHtmlContent = document.importNode(this.templateElement.content, true);
@@ -161,7 +161,7 @@ class TaskList {
   private renderContent() {
     const listId = `${this.type}-tasks-list`;
     this.element.querySelector('ul')!.id = listId;
-    this.element.querySelector('h2')!.textContent = this.type.toUpperCase() + ' TAKEN';
+    this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
   }
 
 
