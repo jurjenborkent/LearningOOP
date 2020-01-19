@@ -5,6 +5,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+class TaskState {
+    constructor() {
+        this.tasks = [];
+    }
+    addTask(title, description, points) {
+        const newTask = {
+            id: Math.random().toString(),
+            title: title,
+            description: description,
+            points: points
+        };
+        this.tasks.push(newTask);
+    }
+}
+const taskState = new TaskState();
 function validate(validatableInput) {
     let isValid = true;
     if (validatableInput.required) {

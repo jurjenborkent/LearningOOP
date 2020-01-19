@@ -1,3 +1,22 @@
+// taak status class
+
+class TaskState {
+  private tasks: any[] = [];
+
+  addTask(title: string, description: string, points: number) {
+    const newTask = {
+      id:Math.random().toString(),
+      title: title,
+      description: description,
+      points: points
+    }
+    this.tasks.push(newTask);
+  }
+}
+
+const taskState = new TaskState();
+
+
 // validation voor het input veld
 
 interface Validator {
@@ -164,11 +183,13 @@ class TaskList {
     this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
   }
 
-
   private attach() {
     this.hostElement.insertAdjacentElement('beforeend', this.element);
   }
 }
+
+
+
 
 const prjInput = new TaskInputForm();
 const toDoTaskList = new TaskList('to do');
