@@ -1,10 +1,36 @@
+// task Type class 
+
+// enum voor de verschillende statusen van een taak 
+
+enum TaskStatus {
+  Todo, 
+  Doing,
+  Verify,
+  Done
+}
+
+class Task {
+
+    constructor(
+      public id: string, 
+      public title: string, 
+      public description: string, 
+      public points: number, 
+      public taskStatus: TaskStatus 
+      ) {
+
+    }
+}
+
+type Listener = (items: Task[]) => void;
+
 // taak status class
 
 class TaskState {
-  private tasks: any[] = [];
+  private tasks: Task[] = [];
   private static instance: TaskState;
   private listeners: any[] = [];
-  
+
   private constructor() {
 
   }
@@ -17,17 +43,18 @@ class TaskState {
     return this.instance;
   }
 
-  addListener(listenerFn: Function) {
+  addListener(listenerFn: Listener) {
     this.listeners.push(listenerFn);
   }
 
   addTask(title: string, description: string, taskPoints: number) {
-    const newTask = {
-      id: Math.random().toString(),
-      title: title,
-      description: description,
-      points: taskPoints
-    }
+    const newTask = new Task(
+      Math.random().toString(),
+      title,
+      description,
+      taskPoints,
+      TaskStatus.Todo
+    );
     this.tasks.push(newTask);
     for (const listenerFn of this.listeners) {
       listenerFn(this.tasks.slice());
@@ -186,7 +213,7 @@ class TaskList {
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLElement;
-  assignedTasks: any[];
+  assignedTasks: Task[];
 
   constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
     this.templateElement = document.getElementById('tasks-list')! as HTMLTemplateElement;
@@ -197,8 +224,20 @@ class TaskList {
     this.element = importedHtmlContent.firstElementChild as HTMLElement;
     this.element.id = `${type}-tasks`
 
-    taskState.addListener((tasks: any[]) => {
-      this.assignedTasks = tasks;
+    taskState.addListener((tasks: Task[]) => {
+      const relevantTasks = tasks.filter(tsk => {
+        if (this.type === 'to do') {
+          return tsk.taskStatus === TaskStatus.Todo
+        }
+        if (this.type === 'doing') {
+          return tsk.taskStatus === TaskStatus.Doing
+        }
+        if (this.type === 'verify') {
+          return tsk.taskStatus === TaskStatus.Verify
+        }
+        return tsk.taskStatus === TaskStatus.Done
+      });
+      this.assignedTasks = relevantTasks;
       this.renderTasks();
     });
 
@@ -208,6 +247,7 @@ class TaskList {
 
   private renderTasks() {
     const listEl = document.getElementById(`${this.type}-tasks-list`)! as HTMLUListElement;
+    listEl.innerHTML = '';
     for (const tskItem of this.assignedTasks) {
       const listItem = document.createElement('li');
       listItem.textContent = tskItem.title;

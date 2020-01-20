@@ -5,6 +5,22 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var TaskStatus;
+(function (TaskStatus) {
+    TaskStatus[TaskStatus["Todo"] = 0] = "Todo";
+    TaskStatus[TaskStatus["Doing"] = 1] = "Doing";
+    TaskStatus[TaskStatus["Verify"] = 2] = "Verify";
+    TaskStatus[TaskStatus["Done"] = 3] = "Done";
+})(TaskStatus || (TaskStatus = {}));
+class Task {
+    constructor(id, title, description, points, taskStatus) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.points = points;
+        this.taskStatus = taskStatus;
+    }
+}
 class TaskState {
     constructor() {
         this.tasks = [];
@@ -21,12 +37,7 @@ class TaskState {
         this.listeners.push(listenerFn);
     }
     addTask(title, description, taskPoints) {
-        const newTask = {
-            id: Math.random().toString(),
-            title: title,
-            description: description,
-            points: taskPoints
-        };
+        const newTask = new Task(Math.random().toString(), title, description, taskPoints, TaskStatus.Todo);
         this.tasks.push(newTask);
         for (const listenerFn of this.listeners) {
             listenerFn(this.tasks.slice());
@@ -140,7 +151,19 @@ class TaskList {
         this.element = importedHtmlContent.firstElementChild;
         this.element.id = `${type}-tasks`;
         taskState.addListener((tasks) => {
-            this.assignedTasks = tasks;
+            const relevantTasks = tasks.filter(tsk => {
+                if (this.type === 'to do') {
+                    return tsk.taskStatus === TaskStatus.Todo;
+                }
+                if (this.type === 'doing') {
+                    return tsk.taskStatus === TaskStatus.Doing;
+                }
+                if (this.type === 'verify') {
+                    return tsk.taskStatus === TaskStatus.Verify;
+                }
+                return tsk.taskStatus === TaskStatus.Done;
+            });
+            this.assignedTasks = relevantTasks;
             this.renderTasks();
         });
         this.attach();
@@ -148,6 +171,7 @@ class TaskList {
     }
     renderTasks() {
         const listEl = document.getElementById(`${this.type}-tasks-list`);
+        listEl.innerHTML = '';
         for (const tskItem of this.assignedTasks) {
             const listItem = document.createElement('li');
             listItem.textContent = tskItem.title;
