@@ -4,8 +4,7 @@ class TaskState {
   private tasks: any[] = [];
   private static instance: TaskState;
   private listeners: any[] = [];
-
- 
+  
   private constructor() {
 
   }
@@ -18,20 +17,20 @@ class TaskState {
     return this.instance;
   }
 
-  addListerener(listernerFn: Function) {
-    this.listeners.push(listernerFn);
+  addListener(listenerFn: Function) {
+    this.listeners.push(listenerFn);
   }
- 
-  addTask(title: string, description: string, points: number) {
+
+  addTask(title: string, description: string, taskPoints: number) {
     const newTask = {
-      id:Math.random().toString(),
+      id: Math.random().toString(),
       title: title,
       description: description,
-      points: points
+      points: taskPoints
     }
     this.tasks.push(newTask);
-    for (const listernerFn of this.listeners) {
-      listernerFn(this.tasks.slice()); 
+    for (const listenerFn of this.listeners) {
+      listenerFn(this.tasks.slice());
     }
   }
 }
@@ -198,8 +197,8 @@ class TaskList {
     this.element = importedHtmlContent.firstElementChild as HTMLElement;
     this.element.id = `${type}-tasks`
 
-    taskState.addListerener((tasks: any[]) => {
-      this.assignedTasks = tasks
+    taskState.addListener((tasks: any[]) => {
+      this.assignedTasks = tasks;
       this.renderTasks();
     });
 
@@ -226,9 +225,6 @@ class TaskList {
     this.hostElement.insertAdjacentElement('beforeend', this.element);
   }
 }
-
-
-
 
 const prjInput = new TaskInputForm();
 const toDoTaskList = new TaskList('to do');

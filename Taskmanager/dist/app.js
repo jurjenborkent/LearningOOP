@@ -8,18 +8,32 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 class TaskState {
     constructor() {
         this.tasks = [];
+        this.listeners = [];
     }
-    addTask(title, description, points) {
+    static getInstance() {
+        if (this.instance) {
+            return this.instance;
+        }
+        this.instance = new TaskState();
+        return this.instance;
+    }
+    addListener(listenerFn) {
+        this.listeners.push(listenerFn);
+    }
+    addTask(title, description, taskPoints) {
         const newTask = {
             id: Math.random().toString(),
             title: title,
             description: description,
-            points: points
+            points: taskPoints
         };
         this.tasks.push(newTask);
+        for (const listenerFn of this.listeners) {
+            listenerFn(this.tasks.slice());
+        }
     }
 }
-const taskState = new TaskState();
+const taskState = TaskState.getInstance();
 function validate(validatableInput) {
     let isValid = true;
     if (validatableInput.required) {
@@ -102,7 +116,7 @@ class TaskInputForm {
         const taskInput = this.gatherFormInput();
         if (Array.isArray(taskInput)) {
             const [title, desc, points] = taskInput;
-            console.log(title, desc, points);
+            taskState.addTask(title, desc, points);
             this.clearForm();
         }
     }
@@ -121,11 +135,24 @@ class TaskList {
         this.type = type;
         this.templateElement = document.getElementById('tasks-list');
         this.hostElement = document.getElementById('app');
+        this.assignedTasks = [];
         const importedHtmlContent = document.importNode(this.templateElement.content, true);
         this.element = importedHtmlContent.firstElementChild;
         this.element.id = `${type}-tasks`;
+        taskState.addListener((tasks) => {
+            this.assignedTasks = tasks;
+            this.renderTasks();
+        });
         this.attach();
         this.renderContent();
+    }
+    renderTasks() {
+        const listEl = document.getElementById(`${this.type}-tasks-list`);
+        for (const tskItem of this.assignedTasks) {
+            const listItem = document.createElement('li');
+            listItem.textContent = tskItem.title;
+            listEl.appendChild(listItem);
+        }
     }
     renderContent() {
         const listId = `${this.type}-tasks-list`;
