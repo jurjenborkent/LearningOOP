@@ -2,7 +2,26 @@
 
 class TaskState {
   private tasks: any[] = [];
+  private static instance: TaskState;
+  private listeners: any[] = [];
 
+ 
+  private constructor() {
+
+  }
+
+  static getInstance() {
+    if (this.instance) {
+      return this.instance;
+    }
+    this.instance = new TaskState();
+    return this.instance;
+  }
+
+  addListerener(listernerFn: Function) {
+    this.listeners.push(listernerFn);
+  }
+ 
   addTask(title: string, description: string, points: number) {
     const newTask = {
       id:Math.random().toString(),
@@ -11,10 +30,13 @@ class TaskState {
       points: points
     }
     this.tasks.push(newTask);
+    for (const listernerFn of this.listeners) {
+      listernerFn(this.tasks.slice()); 
+    }
   }
 }
 
-const taskState = new TaskState();
+const taskState = TaskState.getInstance();
 
 
 // validation voor het input veld
@@ -145,7 +167,7 @@ class TaskInputForm {
     const taskInput = this.gatherFormInput();
     if (Array.isArray(taskInput)) {
       const [title, desc, points] = taskInput;
-      console.log(title, desc, points)
+      taskState.addTask(title, desc, points);
       this.clearForm();
     }
   }
@@ -165,16 +187,33 @@ class TaskList {
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLElement;
+  assignedTasks: any[];
 
   constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
     this.templateElement = document.getElementById('tasks-list')! as HTMLTemplateElement;
     this.hostElement = document.getElementById('app')! as HTMLDivElement;
+    this.assignedTasks = [];
 
     const importedHtmlContent = document.importNode(this.templateElement.content, true);
     this.element = importedHtmlContent.firstElementChild as HTMLElement;
     this.element.id = `${type}-tasks`
+
+    taskState.addListerener((tasks: any[]) => {
+      this.assignedTasks = tasks
+      this.renderTasks();
+    });
+
     this.attach();
     this.renderContent();
+  }
+
+  private renderTasks() {
+    const listEl = document.getElementById(`${this.type}-tasks-list`)! as HTMLUListElement;
+    for (const tskItem of this.assignedTasks) {
+      const listItem = document.createElement('li');
+      listItem.textContent = tskItem.title;
+      listEl.appendChild(listItem);
+    }
   }
 
   private renderContent() {
