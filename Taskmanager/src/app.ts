@@ -3,23 +3,34 @@
 // enum voor de verschillende statusen van een taak 
 
 enum TaskStatus {
-  Todo, 
+  Todo,
   Doing,
   Verify,
   Done
 }
 
+// validation voor het input veld
+
+interface Validator {
+  value: string | number
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+}
+
 class Task {
 
-    constructor(
-      public id: string, 
-      public title: string, 
-      public description: string, 
-      public points: number, 
-      public taskStatus: TaskStatus 
-      ) {
+  constructor(
+    public id: string,
+    public title: string,
+    public description: string,
+    public points: number,
+    public taskStatus: TaskStatus
+  ) {
 
-    }
+  }
 }
 
 type Listener = (items: Task[]) => void;
@@ -63,18 +74,6 @@ class TaskState {
 }
 
 const taskState = TaskState.getInstance();
-
-
-// validation voor het input veld
-
-interface Validator {
-  value: string | number
-  required?: boolean;
-  minLength?: number;
-  maxLength?: number;
-  min?: number;
-  max?: number;
-}
 
 function validate(validatableInput: Validator) {
 
@@ -266,7 +265,9 @@ class TaskList {
   }
 }
 
-const prjInput = new TaskInputForm();
+// creating stuff
+
+const tskInput = new TaskInputForm();
 const toDoTaskList = new TaskList('to do');
 const doingTaskList = new TaskList('doing');
 const verifyTaskList = new TaskList('verify');

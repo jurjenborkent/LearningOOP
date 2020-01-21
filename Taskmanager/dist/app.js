@@ -187,7 +187,7 @@ class TaskList {
         this.hostElement.insertAdjacentElement('beforeend', this.element);
     }
 }
-const prjInput = new TaskInputForm();
+const tskInput = new TaskInputForm();
 const toDoTaskList = new TaskList('to do');
 const doingTaskList = new TaskList('doing');
 const verifyTaskList = new TaskList('verify');
