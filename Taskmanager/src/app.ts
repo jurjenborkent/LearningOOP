@@ -121,28 +121,44 @@ function autoBind(
   return adjDecriptor;
 }
 
-class TaskInputForm {
+
+// compenent class voor het renderen van dom elementen
+abstract class Component<T extends HTMLElement, U extends HTMLElement> {
   templateElement: HTMLTemplateElement;
-  hostElement: HTMLDivElement;
-  element: HTMLFormElement;
+  hostElement: T;
+  element: U;
+
+  constructor(templateId: string, hostElementId: string, insertAtStart: boolean, newElementId?: string) {
+    this.templateElement = document.getElementById(templateId)! as HTMLTemplateElement;
+    this.hostElement = document.getElementById(hostElementId)! as T;
+
+    const importedHtmlContent = document.importNode(this.templateElement.content, true);
+    this.element = importedHtmlContent.firstElementChild as U;
+    if (newElementId) {
+      this.element.id = newElementId;
+    }
+    this.attach(insertAtStart);
+  }
+
+  private attach(insertAtBeginning: boolean) {
+    this.hostElement.insertAdjacentElement(insertAtBeginning ? 'afterbegin' : 'beforeend', this.element);
+  }
+
+  abstract configure(): void;
+  abstract renderContent(): void;
+}
+
+class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
   titleInputElement: HTMLInputElement;
   descriptionInputElement: HTMLInputElement;
   pointsInputElement: HTMLInputElement;
 
   constructor() {
-    this.templateElement = document.getElementById('task-input')! as HTMLTemplateElement;
-    this.hostElement = document.getElementById('app')! as HTMLDivElement;
-
-    const importedHtmlContent = document.importNode(this.templateElement.content, true);
-    this.element = importedHtmlContent.firstElementChild as HTMLFormElement;
-    this.element.id = 'user-input';
-
+    super('task-input', 'app', true, 'user-input');
     this.titleInputElement = this.element.querySelector('#title') as HTMLInputElement;
     this.descriptionInputElement = this.element.querySelector('#description') as HTMLInputElement;
     this.pointsInputElement = this.element.querySelector('#points') as HTMLInputElement;
-
     this.configure();
-    this.attach();
   }
 
   private gatherFormInput(): [string, string, number] | void {
@@ -180,6 +196,12 @@ class TaskInputForm {
     }
   }
 
+  configure() {
+    this.element.addEventListener('submit', this.submitHandler);
+  }
+
+  renderContent() { };
+
   private clearForm() {
     this.titleInputElement.value = '';
     this.descriptionInputElement.value = '';
@@ -197,32 +219,22 @@ class TaskInputForm {
     }
   }
 
-  private configure() {
-    this.element.addEventListener('submit', this.submitHandler);
-  }
-
-  private attach() {
-    this.hostElement.insertAdjacentElement('afterbegin', this.element);
-  }
 }
 
 // taken lijst class voor het maken van lijsten waar taken in gezet gaan worden.
 
-class TaskList {
-  templateElement: HTMLTemplateElement;
-  hostElement: HTMLDivElement;
-  element: HTMLElement;
+class TaskList extends Component<HTMLDivElement, HTMLElement> {
   assignedTasks: Task[];
 
   constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
-    this.templateElement = document.getElementById('tasks-list')! as HTMLTemplateElement;
-    this.hostElement = document.getElementById('app')! as HTMLDivElement;
+    super('tasks-list', 'app', false, `${type}-tasks`);
     this.assignedTasks = [];
 
-    const importedHtmlContent = document.importNode(this.templateElement.content, true);
-    this.element = importedHtmlContent.firstElementChild as HTMLElement;
-    this.element.id = `${type}-tasks`
+    this.configure();
+    this.renderContent();
+  }
 
+  configure() {
     taskState.addListener((tasks: Task[]) => {
       const relevantTasks = tasks.filter(tsk => {
         if (this.type === 'to do') {
@@ -239,9 +251,12 @@ class TaskList {
       this.assignedTasks = relevantTasks;
       this.renderTasks();
     });
+  }
 
-    this.attach();
-    this.renderContent();
+  renderContent() {
+    const listId = `${this.type}-tasks-list`;
+    this.element.querySelector('ul')!.id = listId;
+    this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
   }
 
   private renderTasks() {
@@ -252,16 +267,6 @@ class TaskList {
       listItem.textContent = tskItem.title;
       listEl.appendChild(listItem);
     }
-  }
-
-  private renderContent() {
-    const listId = `${this.type}-tasks-list`;
-    this.element.querySelector('ul')!.id = listId;
-    this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
-  }
-
-  private attach() {
-    this.hostElement.insertAdjacentElement('beforeend', this.element);
   }
 }
 

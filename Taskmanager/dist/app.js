@@ -75,18 +75,28 @@ function autoBind(_, _2, descriptor) {
     };
     return adjDecriptor;
 }
-class TaskInputForm {
-    constructor() {
-        this.templateElement = document.getElementById('task-input');
-        this.hostElement = document.getElementById('app');
+class Component {
+    constructor(templateId, hostElementId, insertAtStart, newElementId) {
+        this.templateElement = document.getElementById(templateId);
+        this.hostElement = document.getElementById(hostElementId);
         const importedHtmlContent = document.importNode(this.templateElement.content, true);
         this.element = importedHtmlContent.firstElementChild;
-        this.element.id = 'user-input';
+        if (newElementId) {
+            this.element.id = newElementId;
+        }
+        this.attach(insertAtStart);
+    }
+    attach(insertAtBeginning) {
+        this.hostElement.insertAdjacentElement(insertAtBeginning ? 'afterbegin' : 'beforeend', this.element);
+    }
+}
+class TaskInputForm extends Component {
+    constructor() {
+        super('task-input', 'app', true, 'user-input');
         this.titleInputElement = this.element.querySelector('#title');
         this.descriptionInputElement = this.element.querySelector('#description');
         this.pointsInputElement = this.element.querySelector('#points');
         this.configure();
-        this.attach();
     }
     gatherFormInput() {
         const enteredTitle = this.titleInputElement.value;
@@ -117,6 +127,11 @@ class TaskInputForm {
             return [enteredTitle, enteredDescription, +enteredPoints];
         }
     }
+    configure() {
+        this.element.addEventListener('submit', this.submitHandler);
+    }
+    renderContent() { }
+    ;
     clearForm() {
         this.titleInputElement.value = '';
         this.descriptionInputElement.value = '';
@@ -131,25 +146,19 @@ class TaskInputForm {
             this.clearForm();
         }
     }
-    configure() {
-        this.element.addEventListener('submit', this.submitHandler);
-    }
-    attach() {
-        this.hostElement.insertAdjacentElement('afterbegin', this.element);
-    }
 }
 __decorate([
     autoBind
 ], TaskInputForm.prototype, "submitHandler", null);
-class TaskList {
+class TaskList extends Component {
     constructor(type) {
+        super('tasks-list', 'app', false, `${type}-tasks`);
         this.type = type;
-        this.templateElement = document.getElementById('tasks-list');
-        this.hostElement = document.getElementById('app');
         this.assignedTasks = [];
-        const importedHtmlContent = document.importNode(this.templateElement.content, true);
-        this.element = importedHtmlContent.firstElementChild;
-        this.element.id = `${type}-tasks`;
+        this.configure();
+        this.renderContent();
+    }
+    configure() {
         taskState.addListener((tasks) => {
             const relevantTasks = tasks.filter(tsk => {
                 if (this.type === 'to do') {
@@ -166,8 +175,11 @@ class TaskList {
             this.assignedTasks = relevantTasks;
             this.renderTasks();
         });
-        this.attach();
-        this.renderContent();
+    }
+    renderContent() {
+        const listId = `${this.type}-tasks-list`;
+        this.element.querySelector('ul').id = listId;
+        this.element.querySelector('h2').textContent = this.type.toUpperCase();
     }
     renderTasks() {
         const listEl = document.getElementById(`${this.type}-tasks-list`);
@@ -177,14 +189,6 @@ class TaskList {
             listItem.textContent = tskItem.title;
             listEl.appendChild(listItem);
         }
-    }
-    renderContent() {
-        const listId = `${this.type}-tasks-list`;
-        this.element.querySelector('ul').id = listId;
-        this.element.querySelector('h2').textContent = this.type.toUpperCase();
-    }
-    attach() {
-        this.hostElement.insertAdjacentElement('beforeend', this.element);
     }
 }
 const tskInput = new TaskInputForm();
