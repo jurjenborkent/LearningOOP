@@ -21,10 +21,18 @@ class Task {
         this.taskStatus = taskStatus;
     }
 }
-class TaskState {
+class State {
     constructor() {
-        this.tasks = [];
         this.listeners = [];
+    }
+    addListener(listenerFn) {
+        this.listeners.push(listenerFn);
+    }
+}
+class TaskState extends State {
+    constructor() {
+        super();
+        this.tasks = [];
     }
     static getInstance() {
         if (this.instance) {
@@ -32,9 +40,6 @@ class TaskState {
         }
         this.instance = new TaskState();
         return this.instance;
-    }
-    addListener(listenerFn) {
-        this.listeners.push(listenerFn);
     }
     addTask(title, description, taskPoints) {
         const newTask = new Task(Math.random().toString(), title, description, taskPoints, TaskStatus.Todo);

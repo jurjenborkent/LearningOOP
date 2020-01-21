@@ -33,17 +33,28 @@ class Task {
   }
 }
 
-type Listener = (items: Task[]) => void;
+// state management
+
+type Listener<T> = (items: T[]) => void;
+
+class State<T> {
+  protected listeners: Listener<T>[] = [];
+
+  addListener(listenerFn: Listener<T>) {
+    this.listeners.push(listenerFn);
+  }
+}
+
 
 // taak status class
 
-class TaskState {
+class TaskState extends State<Task> {
   private tasks: Task[] = [];
   private static instance: TaskState;
-  private listeners: any[] = [];
+
 
   private constructor() {
-
+    super()
   }
 
   static getInstance() {
@@ -54,9 +65,6 @@ class TaskState {
     return this.instance;
   }
 
-  addListener(listenerFn: Listener) {
-    this.listeners.push(listenerFn);
-  }
 
   addTask(title: string, description: string, taskPoints: number) {
     const newTask = new Task(
@@ -143,7 +151,6 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
   private attach(insertAtBeginning: boolean) {
     this.hostElement.insertAdjacentElement(insertAtBeginning ? 'afterbegin' : 'beforeend', this.element);
   }
-
   abstract configure(): void;
   abstract renderContent(): void;
 }
@@ -229,7 +236,6 @@ class TaskList extends Component<HTMLDivElement, HTMLElement> {
   constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
     super('tasks-list', 'app', false, `${type}-tasks`);
     this.assignedTasks = [];
-
     this.configure();
     this.renderContent();
   }
