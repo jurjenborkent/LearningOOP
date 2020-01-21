@@ -228,6 +228,30 @@ class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
 
 }
 
+// taskItem class 
+
+class TaskItem extends Component<HTMLUListElement, HTMLLIElement> {
+  private task: Task;
+  
+  constructor(hostId: string, task: Task){
+  super('single-task', hostId, false, task.id);
+  this.task = task;
+
+  this.configure();
+  this.renderContent();
+}
+
+  configure() {}
+
+  renderContent() {
+    this.element.querySelector('h2')!.textContent = this.task.title;
+    this.element.querySelector('h3')!.textContent = this.task.points.toString();
+    this.element.querySelector('p')!.textContent = this.task.description;
+  }
+
+}
+
+
 // taken lijst class voor het maken van lijsten waar taken in gezet gaan worden.
 
 class TaskList extends Component<HTMLDivElement, HTMLElement> {
@@ -269,9 +293,7 @@ class TaskList extends Component<HTMLDivElement, HTMLElement> {
     const listEl = document.getElementById(`${this.type}-tasks-list`)! as HTMLUListElement;
     listEl.innerHTML = '';
     for (const tskItem of this.assignedTasks) {
-      const listItem = document.createElement('li');
-      listItem.textContent = tskItem.title;
-      listEl.appendChild(listItem);
+    new TaskItem(this.element.querySelector('ul')!.id, tskItem);
     }
   }
 }

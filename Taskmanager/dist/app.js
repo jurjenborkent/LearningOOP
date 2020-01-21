@@ -155,6 +155,20 @@ class TaskInputForm extends Component {
 __decorate([
     autoBind
 ], TaskInputForm.prototype, "submitHandler", null);
+class TaskItem extends Component {
+    constructor(hostId, task) {
+        super('single-task', hostId, false, task.id);
+        this.task = task;
+        this.configure();
+        this.renderContent();
+    }
+    configure() { }
+    renderContent() {
+        this.element.querySelector('h2').textContent = this.task.title;
+        this.element.querySelector('h3').textContent = this.task.points.toString();
+        this.element.querySelector('p').textContent = this.task.description;
+    }
+}
 class TaskList extends Component {
     constructor(type) {
         super('tasks-list', 'app', false, `${type}-tasks`);
@@ -190,9 +204,7 @@ class TaskList extends Component {
         const listEl = document.getElementById(`${this.type}-tasks-list`);
         listEl.innerHTML = '';
         for (const tskItem of this.assignedTasks) {
-            const listItem = document.createElement('li');
-            listItem.textContent = tskItem.title;
-            listEl.appendChild(listItem);
+            new TaskItem(this.element.querySelector('ul').id, tskItem);
         }
     }
 }
