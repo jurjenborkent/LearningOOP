@@ -1,5 +1,8 @@
 # LearningOOP
 
+// main project -> taskmanager (een trello maken)
+// phaser project is w.i.p. Ik kwam er al snel achter dat ik dan eerst phaser framework beter moest leren voordat ik daar progressie in kon maken. 
+
 Reflectie
 
 Uit feedback van de vorige keer bleek dat ik meer moest doen aan mijn programmeurs mindset. Ook moet ik meer gaan leren over structuur aanbrengen binnen mijn code. Ik heb de keuze gemaakt om mijzelf te gaan verdiepen in object georiënteerd programmeren omdat je hierbij geforceerd wordt om structuur binnen je code aan te brengen. Hiermee hoop ik mijn mindset te verbeteren omtrent het programmeren en mijn structuur binnen mijn code te verbeteren. 
