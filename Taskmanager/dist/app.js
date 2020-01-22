@@ -119,8 +119,8 @@ class TaskInputForm extends Component {
         const pointsValidatable = {
             value: +enteredPoints,
             required: true,
-            min: 1,
-            max: 5
+            min: 0,
+            max: 12
         };
         if (!validate(titleValidatable) ||
             !validate(descriptionValidatable) ||
@@ -162,13 +162,33 @@ class TaskItem extends Component {
         this.configure();
         this.renderContent();
     }
-    configure() { }
+    get points() {
+        if (this.task.points === 1) {
+            return '1 point';
+        }
+        else {
+            return `${this.task.points} points`;
+        }
+    }
+    dragstartHandler(event) {
+        console.log(event);
+    }
+    dragEndHandler(_) {
+        console.log('DragEnd');
+    }
+    configure() {
+        this.element.addEventListener('dragstart', this.dragstartHandler);
+        this.element.addEventListener('dragend', this.dragEndHandler);
+    }
     renderContent() {
         this.element.querySelector('h2').textContent = this.task.title;
-        this.element.querySelector('h3').textContent = this.task.points.toString();
+        this.element.querySelector('h3').textContent = this.points + ' assigned';
         this.element.querySelector('p').textContent = this.task.description;
     }
 }
+__decorate([
+    autoBind
+], TaskItem.prototype, "dragstartHandler", null);
 class TaskList extends Component {
     constructor(type) {
         super('tasks-list', 'app', false, `${type}-tasks`);
@@ -177,7 +197,20 @@ class TaskList extends Component {
         this.configure();
         this.renderContent();
     }
+    dragOverHandler(_) {
+        const listEl = this.element.querySelector('ul');
+        listEl.classList.add('droppable');
+    }
+    dropHandler(_) {
+    }
+    dragLeaveHandler(_) {
+        const listEl = this.element.querySelector('ul');
+        listEl.classList.remove('droppable');
+    }
     configure() {
+        this.element.addEventListener('dragover', this.dragOverHandler);
+        this.element.addEventListener('dragleave', this.dragLeaveHandler);
+        this.element.addEventListener('drop', this.dropHandler);
         taskState.addListener((tasks) => {
             const relevantTasks = tasks.filter(tsk => {
                 if (this.type === 'to do') {
@@ -208,6 +241,12 @@ class TaskList extends Component {
         }
     }
 }
+__decorate([
+    autoBind
+], TaskList.prototype, "dragOverHandler", null);
+__decorate([
+    autoBind
+], TaskList.prototype, "dragLeaveHandler", null);
 const tskInput = new TaskInputForm();
 const toDoTaskList = new TaskList('to do');
 const doingTaskList = new TaskList('doing');
