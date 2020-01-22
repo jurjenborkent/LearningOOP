@@ -13,12 +13,12 @@ var TaskStatus;
     TaskStatus[TaskStatus["Done"] = 3] = "Done";
 })(TaskStatus || (TaskStatus = {}));
 class Task {
-    constructor(id, title, description, points, taskStatus) {
+    constructor(id, title, description, points, status) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.points = points;
-        this.taskStatus = taskStatus;
+        this.status = status;
     }
 }
 class State {
@@ -44,6 +44,16 @@ class TaskState extends State {
     addTask(title, description, taskPoints) {
         const newTask = new Task(Math.random().toString(), title, description, taskPoints, TaskStatus.Todo);
         this.tasks.push(newTask);
+        this.updateListeners();
+    }
+    moveTask(taskId, newStatus) {
+        const task = this.tasks.find(tsk => tsk.id === taskId);
+        if (task && task.status !== newStatus) {
+            task.status = newStatus;
+            this.updateListeners();
+        }
+    }
+    updateListeners() {
         for (const listenerFn of this.listeners) {
             listenerFn(this.tasks.slice());
         }
@@ -95,6 +105,105 @@ class Component {
         this.hostElement.insertAdjacentElement(insertAtBeginning ? 'afterbegin' : 'beforeend', this.element);
     }
 }
+class TaskItem extends Component {
+    constructor(hostId, task) {
+        super('single-task', hostId, false, task.id);
+        this.task = task;
+        this.configure();
+        this.renderContent();
+    }
+    get points() {
+        if (this.task.points === 1) {
+            return '1 point';
+        }
+        else {
+            return `${this.task.points} points`;
+        }
+    }
+    dragStartHandler(event) {
+        event.dataTransfer.setData('text/plain', this.task.id);
+        event.dataTransfer.effectAllowed = 'move';
+    }
+    dragEndHandler(_) {
+        console.log('DragEnd');
+    }
+    configure() {
+        this.element.addEventListener('dragstart', this.dragStartHandler);
+        this.element.addEventListener('dragend', this.dragEndHandler);
+    }
+    renderContent() {
+        this.element.querySelector('h2').textContent = this.task.title;
+        this.element.querySelector('h3').textContent = this.points + ' assigned';
+        this.element.querySelector('p').textContent = this.task.description;
+    }
+}
+__decorate([
+    autoBind
+], TaskItem.prototype, "dragStartHandler", null);
+class TaskList extends Component {
+    constructor(type) {
+        super('tasks-list', 'app', false, `${type}-tasks`);
+        this.type = type;
+        this.assignedTasks = [];
+        this.configure();
+        this.renderContent();
+    }
+    dragOverHandler(event) {
+        if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
+            event.preventDefault();
+            const listEl = this.element.querySelector('ul');
+            listEl.classList.add('droppable');
+        }
+    }
+    dropHandler(event) {
+        const tskId = event.dataTransfer.getData('text/plain');
+        taskState.moveTask(tskId, this.type === 'todo' ? TaskStatus.Todo : TaskStatus.Doing);
+    }
+    ;
+    dragLeaveHandler(_) {
+        const listEl = this.element.querySelector('ul');
+        listEl.classList.remove('droppable');
+    }
+    configure() {
+        this.element.addEventListener('dragover', this.dragOverHandler);
+        this.element.addEventListener('dragleave', this.dragLeaveHandler);
+        this.element.addEventListener('drop', this.dropHandler);
+        taskState.addListener((tasks) => {
+            const relevantTasks = tasks.filter(tsk => {
+                if (this.type === 'todo') {
+                    return tsk.status === TaskStatus.Todo;
+                }
+                if (this.type === 'doing') {
+                    return tsk.status === TaskStatus.Doing;
+                }
+                if (this.type === 'verify') {
+                    return tsk.status === TaskStatus.Verify;
+                }
+                return tsk.status === TaskStatus.Doing;
+            });
+            this.assignedTasks = relevantTasks;
+            this.renderTasks();
+        });
+    }
+    renderContent() {
+        const listId = `${this.type}-tasks-list`;
+        this.element.querySelector('ul').id = listId;
+        this.element.querySelector('h2').textContent = this.type.toUpperCase();
+    }
+    renderTasks() {
+        const listEl = document.getElementById(`${this.type}-tasks-list`);
+        listEl.innerHTML = '';
+        for (const tskItem of this.assignedTasks) {
+            new TaskItem(this.element.querySelector('ul').id, tskItem);
+        }
+    }
+}
+__decorate([
+    autoBind
+], TaskList.prototype, "dragOverHandler", null);
+__decorate([
+    autoBind
+], TaskList.prototype, "dragLeaveHandler", null);
 class TaskInputForm extends Component {
     constructor() {
         super('task-input', 'app', true, 'user-input');
@@ -103,6 +212,11 @@ class TaskInputForm extends Component {
         this.pointsInputElement = this.element.querySelector('#points');
         this.configure();
     }
+    configure() {
+        this.element.addEventListener('submit', this.submitHandler);
+    }
+    renderContent() { }
+    ;
     gatherFormInput() {
         const enteredTitle = this.titleInputElement.value;
         const enteredDescription = this.descriptionInputElement.value;
@@ -132,11 +246,6 @@ class TaskInputForm extends Component {
             return [enteredTitle, enteredDescription, +enteredPoints];
         }
     }
-    configure() {
-        this.element.addEventListener('submit', this.submitHandler);
-    }
-    renderContent() { }
-    ;
     clearForm() {
         this.titleInputElement.value = '';
         this.descriptionInputElement.value = '';
@@ -155,100 +264,8 @@ class TaskInputForm extends Component {
 __decorate([
     autoBind
 ], TaskInputForm.prototype, "submitHandler", null);
-class TaskItem extends Component {
-    constructor(hostId, task) {
-        super('single-task', hostId, false, task.id);
-        this.task = task;
-        this.configure();
-        this.renderContent();
-    }
-    get points() {
-        if (this.task.points === 1) {
-            return '1 point';
-        }
-        else {
-            return `${this.task.points} points`;
-        }
-    }
-    dragstartHandler(event) {
-        console.log(event);
-    }
-    dragEndHandler(_) {
-        console.log('DragEnd');
-    }
-    configure() {
-        this.element.addEventListener('dragstart', this.dragstartHandler);
-        this.element.addEventListener('dragend', this.dragEndHandler);
-    }
-    renderContent() {
-        this.element.querySelector('h2').textContent = this.task.title;
-        this.element.querySelector('h3').textContent = this.points + ' assigned';
-        this.element.querySelector('p').textContent = this.task.description;
-    }
-}
-__decorate([
-    autoBind
-], TaskItem.prototype, "dragstartHandler", null);
-class TaskList extends Component {
-    constructor(type) {
-        super('tasks-list', 'app', false, `${type}-tasks`);
-        this.type = type;
-        this.assignedTasks = [];
-        this.configure();
-        this.renderContent();
-    }
-    dragOverHandler(_) {
-        const listEl = this.element.querySelector('ul');
-        listEl.classList.add('droppable');
-    }
-    dropHandler(_) {
-    }
-    dragLeaveHandler(_) {
-        const listEl = this.element.querySelector('ul');
-        listEl.classList.remove('droppable');
-    }
-    configure() {
-        this.element.addEventListener('dragover', this.dragOverHandler);
-        this.element.addEventListener('dragleave', this.dragLeaveHandler);
-        this.element.addEventListener('drop', this.dropHandler);
-        taskState.addListener((tasks) => {
-            const relevantTasks = tasks.filter(tsk => {
-                if (this.type === 'to do') {
-                    return tsk.taskStatus === TaskStatus.Todo;
-                }
-                if (this.type === 'doing') {
-                    return tsk.taskStatus === TaskStatus.Doing;
-                }
-                if (this.type === 'verify') {
-                    return tsk.taskStatus === TaskStatus.Verify;
-                }
-                return tsk.taskStatus === TaskStatus.Done;
-            });
-            this.assignedTasks = relevantTasks;
-            this.renderTasks();
-        });
-    }
-    renderContent() {
-        const listId = `${this.type}-tasks-list`;
-        this.element.querySelector('ul').id = listId;
-        this.element.querySelector('h2').textContent = this.type.toUpperCase();
-    }
-    renderTasks() {
-        const listEl = document.getElementById(`${this.type}-tasks-list`);
-        listEl.innerHTML = '';
-        for (const tskItem of this.assignedTasks) {
-            new TaskItem(this.element.querySelector('ul').id, tskItem);
-        }
-    }
-}
-__decorate([
-    autoBind
-], TaskList.prototype, "dragOverHandler", null);
-__decorate([
-    autoBind
-], TaskList.prototype, "dragLeaveHandler", null);
 const tskInput = new TaskInputForm();
-const toDoTaskList = new TaskList('to do');
+const toDoTaskList = new TaskList('todo');
 const doingTaskList = new TaskList('doing');
 const verifyTaskList = new TaskList('verify');
 const doneTaskList = new TaskList('done');

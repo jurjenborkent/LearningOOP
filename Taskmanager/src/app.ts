@@ -1,4 +1,15 @@
-// task Type class 
+// dragndrop 
+
+interface Draggable {
+  dragStartHandler(event: DragEvent): void;
+  dragEndHandler(event: DragEvent): void;
+}
+
+interface DragTarget {
+  dragOverHandler(event: DragEvent): void;
+  dropHandler(event: DragEvent): void;
+  dragLeaveHandler(event: DragEvent): void;
+}
 
 // enum voor de verschillende statusen van een taak 
 
@@ -9,40 +20,14 @@ enum TaskStatus {
   Done
 }
 
-// dragndrop 
-interface Draggable {
-  dragstartHandler(event: DragEvent): void;
-  dragEndHandler(event: DragEvent): void;
-}
-
-interface DragTarget {
-  dragOverHandler(event: DragEvent): void;
-  dropHandler(event: DragEvent): void;
-  dragLeaveHandler(event: DragEvent): void;
-}
-
-// validation voor het input veld
-
-interface Validator {
-  value: string | number
-  required?: boolean;
-  minLength?: number;
-  maxLength?: number;
-  min?: number;
-  max?: number;
-}
-
 class Task {
-
-  constructor(
+    constructor(
     public id: string,
     public title: string,
     public description: string,
     public points: number,
-    public taskStatus: TaskStatus
-  ) {
-
-  }
+    public status: TaskStatus
+  ) {}
 }
 
 // state management
@@ -56,7 +41,6 @@ class State<T> {
     this.listeners.push(listenerFn);
   }
 }
-
 
 // taak status class
 
@@ -87,6 +71,18 @@ class TaskState extends State<Task> {
       TaskStatus.Todo
     );
     this.tasks.push(newTask);
+    this.updateListeners();
+  }
+
+  moveTask(taskId: string, newStatus: TaskStatus) {
+   const task = this.tasks.find(tsk => tsk.id === taskId);
+   if (task && task.status !== newStatus) {
+     task.status = newStatus;
+     this.updateListeners();
+   }
+  }
+
+  private updateListeners() {
     for (const listenerFn of this.listeners) {
       listenerFn(this.tasks.slice());
     }
@@ -95,10 +91,20 @@ class TaskState extends State<Task> {
 
 const taskState = TaskState.getInstance();
 
+// validation voor het input veld
+
+interface Validator {
+  value: string | number;
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+}
+
 function validate(validatableInput: Validator) {
 
   // hier voeren we een check uit op voorwaarden die gelden bij het invullen van velden.
-
   let isValid = true;
   if (validatableInput.required) {
     isValid = isValid && validatableInput.value.toString().trim().length !== 0
@@ -124,7 +130,6 @@ function validate(validatableInput: Validator) {
 
 
 // autoBind decorator 
-
 function autoBind(
   _: any,
   _2: string,
@@ -140,7 +145,6 @@ function autoBind(
   };
   return adjDecriptor;
 }
-
 
 // compenent class voor het renderen van dom elementen
 abstract class Component<T extends HTMLElement, U extends HTMLElement> {
@@ -167,6 +171,122 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
   abstract renderContent(): void;
 }
 
+// taskItem class 
+
+class TaskItem extends Component<HTMLUListElement, HTMLLIElement> implements Draggable {
+  private task: Task;
+
+  get points() {
+    if (this.task.points === 1) {
+      return '1 point';
+    } else {
+      return `${this.task.points} points`;
+    }
+  }
+
+  constructor(hostId: string, task: Task) {
+    super('single-task', hostId, false, task.id);
+    this.task = task;
+
+    this.configure();
+    this.renderContent();
+  }
+
+  @autoBind
+  dragStartHandler(event: DragEvent) {
+    event.dataTransfer!.setData('text/plain', this.task.id);
+    event.dataTransfer!.effectAllowed = 'move';
+  }
+
+  dragEndHandler(_: DragEvent) {
+    console.log('DragEnd');
+  }
+
+  configure() {
+    this.element.addEventListener('dragstart', this.dragStartHandler);
+    this.element.addEventListener('dragend', this.dragEndHandler);
+  }
+
+  renderContent() {
+    this.element.querySelector('h2')!.textContent = this.task.title;
+    this.element.querySelector('h3')!.textContent = this.points + ' assigned';
+    this.element.querySelector('p')!.textContent = this.task.description;
+  }
+
+}
+
+// taken lijst class voor het maken van lijsten waar taken in gezet gaan worden.
+
+class TaskList extends Component<HTMLDivElement, HTMLElement> implements DragTarget {
+  assignedTasks: Task[];
+
+  constructor(private type: 'todo' | 'doing' | 'verify' | 'done' ) {
+    super('tasks-list', 'app', false, `${type}-tasks`);
+    this.assignedTasks = [];
+    
+    this.configure();
+    this.renderContent();
+  }
+
+  @autoBind
+  dragOverHandler(event: DragEvent) {
+    if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
+    event.preventDefault();
+    const listEl = this.element.querySelector('ul')!;
+    listEl.classList.add('droppable');
+  
+    }
+  }
+
+  dropHandler(event: DragEvent) {
+    const tskId = event.dataTransfer!.getData('text/plain');
+    taskState.moveTask(tskId, this.type === 'todo' ? TaskStatus.Todo : TaskStatus.Doing)                                         
+    };
+
+  @autoBind
+  dragLeaveHandler(_: DragEvent) { 
+    const listEl = this.element.querySelector('ul')!;
+    listEl.classList.remove('droppable');
+  }
+
+  configure() {
+    this.element.addEventListener('dragover', this.dragOverHandler);
+    this.element.addEventListener('dragleave', this.dragLeaveHandler);
+    this.element.addEventListener('drop', this.dropHandler);
+    
+    taskState.addListener((tasks: Task[]) => {
+      const relevantTasks = tasks.filter(tsk => {
+        if (this.type === 'todo') {
+          return tsk.status === TaskStatus.Todo
+        }
+        if (this.type === 'doing') {
+          return tsk.status === TaskStatus.Doing
+        }
+        if (this.type === 'verify') {
+          return tsk.status === TaskStatus.Verify
+        }
+        return tsk.status === TaskStatus.Doing
+      });
+      this.assignedTasks = relevantTasks;
+      this.renderTasks();
+    });
+  }
+
+  renderContent() {
+    const listId = `${this.type}-tasks-list`;
+    this.element.querySelector('ul')!.id = listId;
+    this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
+  }
+
+  private renderTasks() {
+    const listEl = document.getElementById(`${this.type}-tasks-list`)! as HTMLUListElement;
+    listEl.innerHTML = '';
+    for (const tskItem of this.assignedTasks) {
+      new TaskItem(this.element.querySelector('ul')!.id, tskItem);
+    }
+  }
+}
+
 class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
   titleInputElement: HTMLInputElement;
   descriptionInputElement: HTMLInputElement;
@@ -179,6 +299,13 @@ class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
     this.pointsInputElement = this.element.querySelector('#points') as HTMLInputElement;
     this.configure();
   }
+
+  configure() {
+    this.element.addEventListener('submit', this.submitHandler);
+  }
+
+  renderContent() {};
+
 
   private gatherFormInput(): [string, string, number] | void {
     const enteredTitle = this.titleInputElement.value;
@@ -215,12 +342,6 @@ class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
     }
   }
 
-  configure() {
-    this.element.addEventListener('submit', this.submitHandler);
-  }
-
-  renderContent() { };
-
   private clearForm() {
     this.titleInputElement.value = '';
     this.descriptionInputElement.value = '';
@@ -237,123 +358,12 @@ class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
       this.clearForm();
     }
   }
-
-}
-
-// taskItem class 
-
-class TaskItem extends Component<HTMLUListElement, HTMLLIElement> implements Draggable {
-  private task: Task;
-
-  get points() {
-    if (this.task.points === 1) {
-      return '1 point';
-    } else {
-      return `${this.task.points} points`;
-    }
-  }
-
-  constructor(hostId: string, task: Task) {
-    super('single-task', hostId, false, task.id);
-    this.task = task;
-
-    this.configure();
-    this.renderContent();
-  }
-
-  @autoBind
-  dragstartHandler(event: DragEvent) {
-    console.log(event);
-  }
-
-  dragEndHandler(_: DragEvent) {
-    console.log('DragEnd');
-  }
-
-  configure() {
-    this.element.addEventListener('dragstart', this.dragstartHandler);
-    this.element.addEventListener('dragend', this.dragEndHandler);
-  }
-
-  renderContent() {
-    this.element.querySelector('h2')!.textContent = this.task.title;
-    this.element.querySelector('h3')!.textContent = this.points + ' assigned';
-    this.element.querySelector('p')!.textContent = this.task.description;
-  }
-
-}
-
-
-// taken lijst class voor het maken van lijsten waar taken in gezet gaan worden.
-
-class TaskList extends Component<HTMLDivElement, HTMLElement> implements DragTarget {
-  assignedTasks: Task[];
-
-  constructor(private type: 'to do' | 'doing' | 'verify' | 'done') {
-    super('tasks-list', 'app', false, `${type}-tasks`);
-    this.assignedTasks = [];
-    this.configure();
-    this.renderContent();
-  }
-
-  @autoBind
-  dragOverHandler(_: DragEvent) {
-    const listEl = this.element.querySelector('ul')!;
-    listEl.classList.add('droppable');
-  }
-
-  dropHandler(_: DragEvent) {
-
-  }
-
-  @autoBind
-  dragLeaveHandler(_: DragEvent) {
-    const listEl = this.element.querySelector('ul')!;
-    listEl.classList.remove('droppable');
-  }
-
-  configure() {
-    this.element.addEventListener('dragover', this.dragOverHandler);
-    this.element.addEventListener('dragleave', this.dragLeaveHandler);
-    this.element.addEventListener('drop', this.dropHandler);
-    
-    taskState.addListener((tasks: Task[]) => {
-      const relevantTasks = tasks.filter(tsk => {
-        if (this.type === 'to do') {
-          return tsk.taskStatus === TaskStatus.Todo
-        }
-        if (this.type === 'doing') {
-          return tsk.taskStatus === TaskStatus.Doing
-        }
-        if (this.type === 'verify') {
-          return tsk.taskStatus === TaskStatus.Verify
-        }
-        return tsk.taskStatus === TaskStatus.Done
-      });
-      this.assignedTasks = relevantTasks;
-      this.renderTasks();
-    });
-  }
-
-  renderContent() {
-    const listId = `${this.type}-tasks-list`;
-    this.element.querySelector('ul')!.id = listId;
-    this.element.querySelector('h2')!.textContent = this.type.toUpperCase();
-  }
-
-  private renderTasks() {
-    const listEl = document.getElementById(`${this.type}-tasks-list`)! as HTMLUListElement;
-    listEl.innerHTML = '';
-    for (const tskItem of this.assignedTasks) {
-      new TaskItem(this.element.querySelector('ul')!.id, tskItem);
-    }
-  }
 }
 
 // creating stuff
 
 const tskInput = new TaskInputForm();
-const toDoTaskList = new TaskList('to do');
+const toDoTaskList = new TaskList('todo');
 const doingTaskList = new TaskList('doing');
 const verifyTaskList = new TaskList('verify');
 const doneTaskList = new TaskList('done');
