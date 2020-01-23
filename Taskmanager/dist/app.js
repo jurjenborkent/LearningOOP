@@ -12,6 +12,13 @@ var TaskStatus;
     TaskStatus[TaskStatus["Verify"] = 2] = "Verify";
     TaskStatus[TaskStatus["Done"] = 3] = "Done";
 })(TaskStatus || (TaskStatus = {}));
+var TaskDrops;
+(function (TaskDrops) {
+    TaskDrops["Todo"] = "todo-tasks";
+    TaskDrops["Doing"] = "doing-tasks";
+    TaskDrops["Verify"] = "verify-tasks";
+    TaskDrops["Done"] = "done-tasks";
+})(TaskDrops || (TaskDrops = {}));
 class Task {
     constructor(id, title, description, points, status) {
         this.id = id;
@@ -51,6 +58,7 @@ class TaskState extends State {
         if (task && task.status !== newStatus) {
             task.status = newStatus;
             this.updateListeners();
+            console.log(task);
         }
     }
     updateListeners() {
@@ -109,6 +117,7 @@ class TaskItem extends Component {
     constructor(hostId, task) {
         super('single-task', hostId, false, task.id);
         this.task = task;
+        console.log(task);
         this.configure();
         this.renderContent();
     }
@@ -126,6 +135,7 @@ class TaskItem extends Component {
     }
     dragEndHandler(_) {
         console.log('DragEnd');
+        console.log(this.task);
     }
     configure() {
         this.element.addEventListener('dragstart', this.dragStartHandler);
@@ -156,8 +166,28 @@ class TaskList extends Component {
         }
     }
     dropHandler(event) {
-        const tskId = event.dataTransfer.getData('text/plain');
-        taskState.moveTask(tskId, this.type === 'todo' ? TaskStatus.Todo : TaskStatus.Doing);
+        var _a;
+        const targetId = (_a = event.target.parentElement) === null || _a === void 0 ? void 0 : _a.id;
+        if (!targetId) {
+            return;
+        }
+        const taskID = event.dataTransfer.getData('text/plain');
+        switch (targetId) {
+            case TaskDrops.Todo:
+                taskState.moveTask(taskID, TaskStatus.Todo);
+                break;
+            case TaskDrops.Doing:
+                taskState.moveTask(taskID, TaskStatus.Doing);
+                break;
+            case TaskDrops.Verify:
+                taskState.moveTask(taskID, TaskStatus.Verify);
+                break;
+            case TaskDrops.Done:
+                taskState.moveTask(taskID, TaskStatus.Done);
+                break;
+            default:
+                break;
+        }
     }
     ;
     dragLeaveHandler(_) {
@@ -179,7 +209,7 @@ class TaskList extends Component {
                 if (this.type === 'verify') {
                     return tsk.status === TaskStatus.Verify;
                 }
-                return tsk.status === TaskStatus.Doing;
+                return tsk.status === TaskStatus.Done;
             });
             this.assignedTasks = relevantTasks;
             this.renderTasks();
@@ -201,6 +231,9 @@ class TaskList extends Component {
 __decorate([
     autoBind
 ], TaskList.prototype, "dragOverHandler", null);
+__decorate([
+    autoBind
+], TaskList.prototype, "dropHandler", null);
 __decorate([
     autoBind
 ], TaskList.prototype, "dragLeaveHandler", null);

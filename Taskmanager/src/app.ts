@@ -20,14 +20,21 @@ enum TaskStatus {
   Done
 }
 
+enum TaskDrops {
+  Todo = 'todo-tasks',
+  Doing = 'doing-tasks',
+  Verify = 'verify-tasks',
+  Done = 'done-tasks',
+}
+
 class Task {
-    constructor(
+  constructor(
     public id: string,
     public title: string,
     public description: string,
     public points: number,
     public status: TaskStatus
-  ) {}
+  ) { }
 }
 
 // state management
@@ -75,11 +82,12 @@ class TaskState extends State<Task> {
   }
 
   moveTask(taskId: string, newStatus: TaskStatus) {
-   const task = this.tasks.find(tsk => tsk.id === taskId);
-   if (task && task.status !== newStatus) {
-     task.status = newStatus;
-     this.updateListeners();
-   }
+    const task = this.tasks.find(tsk => tsk.id === taskId);
+    if (task && task.status !== newStatus) {
+      task.status = newStatus;
+      this.updateListeners();
+      console.log(task)
+    }
   }
 
   private updateListeners() {
@@ -187,6 +195,7 @@ class TaskItem extends Component<HTMLUListElement, HTMLLIElement> implements Dra
   constructor(hostId: string, task: Task) {
     super('single-task', hostId, false, task.id);
     this.task = task;
+    console.log(task);
 
     this.configure();
     this.renderContent();
@@ -198,8 +207,10 @@ class TaskItem extends Component<HTMLUListElement, HTMLLIElement> implements Dra
     event.dataTransfer!.effectAllowed = 'move';
   }
 
+
   dragEndHandler(_: DragEvent) {
     console.log('DragEnd');
+    console.log(this.task)
   }
 
   configure() {
@@ -220,31 +231,50 @@ class TaskItem extends Component<HTMLUListElement, HTMLLIElement> implements Dra
 class TaskList extends Component<HTMLDivElement, HTMLElement> implements DragTarget {
   assignedTasks: Task[];
 
-  constructor(private type: 'todo' | 'doing' | 'verify' | 'done' ) {
+
+  constructor(private type: 'todo' | 'doing' | 'verify' | 'done') {
     super('tasks-list', 'app', false, `${type}-tasks`);
     this.assignedTasks = [];
-    
+
     this.configure();
     this.renderContent();
   }
-
   @autoBind
   dragOverHandler(event: DragEvent) {
     if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
-    event.preventDefault();
-    const listEl = this.element.querySelector('ul')!;
-    listEl.classList.add('droppable');
-  
+      event.preventDefault();
+      const listEl = this.element.querySelector('ul')!;
+      listEl.classList.add('droppable');
+
     }
   }
-
+  @autoBind
   dropHandler(event: DragEvent) {
-    const tskId = event.dataTransfer!.getData('text/plain');
-    taskState.moveTask(tskId, this.type === 'todo' ? TaskStatus.Todo : TaskStatus.Doing)                                         
-    };
+    const targetId = (event.target as HTMLElement).parentElement?.id;
+    if (!targetId) {
+      return; // Did not found any ID
+    }
+    const taskID = event.dataTransfer!.getData('text/plain');
+    switch (targetId) {
+      case TaskDrops.Todo: 
+        taskState.moveTask(taskID, TaskStatus.Todo);
+        break;
+      case TaskDrops.Doing: 
+        taskState.moveTask(taskID, TaskStatus.Doing);
+        break;
+      case TaskDrops.Verify: 
+        taskState.moveTask(taskID, TaskStatus.Verify);
+        break;
+      case TaskDrops.Done: 
+        taskState.moveTask(taskID, TaskStatus.Done);
+        break;
+      default: 
+        break; // Don't do anything if target wasn't recognized
+    }
+  };
 
   @autoBind
-  dragLeaveHandler(_: DragEvent) { 
+  dragLeaveHandler(_: DragEvent) {
     const listEl = this.element.querySelector('ul')!;
     listEl.classList.remove('droppable');
   }
@@ -253,7 +283,7 @@ class TaskList extends Component<HTMLDivElement, HTMLElement> implements DragTar
     this.element.addEventListener('dragover', this.dragOverHandler);
     this.element.addEventListener('dragleave', this.dragLeaveHandler);
     this.element.addEventListener('drop', this.dropHandler);
-    
+
     taskState.addListener((tasks: Task[]) => {
       const relevantTasks = tasks.filter(tsk => {
         if (this.type === 'todo') {
@@ -265,7 +295,7 @@ class TaskList extends Component<HTMLDivElement, HTMLElement> implements DragTar
         if (this.type === 'verify') {
           return tsk.status === TaskStatus.Verify
         }
-        return tsk.status === TaskStatus.Doing
+        return tsk.status === TaskStatus.Done
       });
       this.assignedTasks = relevantTasks;
       this.renderTasks();
@@ -304,7 +334,7 @@ class TaskInputForm extends Component<HTMLDivElement, HTMLFormElement> {
     this.element.addEventListener('submit', this.submitHandler);
   }
 
-  renderContent() {};
+  renderContent() { };
 
 
   private gatherFormInput(): [string, string, number] | void {
