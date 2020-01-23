@@ -5,6 +5,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+let logged;
+function sendAnalytics(data) {
+    console.log(data);
+    logged = true;
+}
+sendAnalytics('The data');
 var App;
 (function (App) {
     let TaskStatus;
@@ -13,14 +19,14 @@ var App;
         TaskStatus[TaskStatus["Doing"] = 1] = "Doing";
         TaskStatus[TaskStatus["Verify"] = 2] = "Verify";
         TaskStatus[TaskStatus["Done"] = 3] = "Done";
-    })(TaskStatus || (TaskStatus = {}));
+    })(TaskStatus = App.TaskStatus || (App.TaskStatus = {}));
     let TaskDrops;
     (function (TaskDrops) {
         TaskDrops["Todo"] = "todo-tasks";
         TaskDrops["Doing"] = "doing-tasks";
         TaskDrops["Verify"] = "verify-tasks";
         TaskDrops["Done"] = "done-tasks";
-    })(TaskDrops || (TaskDrops = {}));
+    })(TaskDrops = App.TaskDrops || (App.TaskDrops = {}));
     class Task {
         constructor(id, title, description, points, status) {
             this.id = id;
@@ -30,6 +36,10 @@ var App;
             this.status = status;
         }
     }
+    App.Task = Task;
+})(App || (App = {}));
+var App;
+(function (App) {
     class State {
         constructor() {
             this.listeners = [];
@@ -56,7 +66,7 @@ var App;
             return this.instance;
         }
         addTask(title, description, taskPoints) {
-            const newTask = new Task(Math.random().toString(), title, description, taskPoints, TaskStatus.Todo);
+            const newTask = new App.Task(Math.random().toString(), title, description, taskPoints, App.TaskStatus.Todo);
             this.tasks.push(newTask);
             this.updateListeners();
         }
@@ -69,7 +79,11 @@ var App;
             }
         }
     }
-    const taskState = TaskState.getInstance();
+    App.TaskState = TaskState;
+    App.taskState = TaskState.getInstance();
+})(App || (App = {}));
+var App;
+(function (App) {
     function validate(validatableInput) {
         let isValid = true;
         if (validatableInput.required) {
@@ -175,17 +189,17 @@ var App;
             }
             const taskID = event.dataTransfer.getData('text/plain');
             switch (targetId) {
-                case TaskDrops.Todo:
-                    taskState.moveTask(taskID, TaskStatus.Todo);
+                case App.TaskDrops.Todo:
+                    App.taskState.moveTask(taskID, App.TaskStatus.Todo);
                     break;
-                case TaskDrops.Doing:
-                    taskState.moveTask(taskID, TaskStatus.Doing);
+                case App.TaskDrops.Doing:
+                    App.taskState.moveTask(taskID, App.TaskStatus.Doing);
                     break;
-                case TaskDrops.Verify:
-                    taskState.moveTask(taskID, TaskStatus.Verify);
+                case App.TaskDrops.Verify:
+                    App.taskState.moveTask(taskID, App.TaskStatus.Verify);
                     break;
-                case TaskDrops.Done:
-                    taskState.moveTask(taskID, TaskStatus.Done);
+                case App.TaskDrops.Done:
+                    App.taskState.moveTask(taskID, App.TaskStatus.Done);
                     break;
                 default:
                     break;
@@ -200,18 +214,18 @@ var App;
             this.element.addEventListener('dragover', this.dragOverHandler);
             this.element.addEventListener('dragleave', this.dragLeaveHandler);
             this.element.addEventListener('drop', this.dropHandler);
-            taskState.addListener((tasks) => {
+            App.taskState.addListener((tasks) => {
                 const relevantTasks = tasks.filter(tsk => {
                     if (this.type === 'todo') {
-                        return tsk.status === TaskStatus.Todo;
+                        return tsk.status === App.TaskStatus.Todo;
                     }
                     if (this.type === 'doing') {
-                        return tsk.status === TaskStatus.Doing;
+                        return tsk.status === App.TaskStatus.Doing;
                     }
                     if (this.type === 'verify') {
-                        return tsk.status === TaskStatus.Verify;
+                        return tsk.status === App.TaskStatus.Verify;
                     }
-                    return tsk.status === TaskStatus.Done;
+                    return tsk.status === App.TaskStatus.Done;
                 });
                 this.assignedTasks = relevantTasks;
                 this.renderTasks();
@@ -291,7 +305,7 @@ var App;
             const taskInput = this.gatherFormInput();
             if (Array.isArray(taskInput)) {
                 const [title, desc, points] = taskInput;
-                taskState.addTask(title, desc, points);
+                App.taskState.addTask(title, desc, points);
                 this.clearForm();
             }
         }
@@ -304,4 +318,19 @@ var App;
     new TaskList('doing');
     new TaskList('verify');
     new TaskList('done');
+})(App || (App = {}));
+var App;
+(function (App) {
+    function autoBind(_, _2, descriptor) {
+        const originalMethod = descriptor.value;
+        const adjDecriptor = {
+            configurable: true,
+            get() {
+                const boundFn = originalMethod.bind(this);
+                return boundFn;
+            }
+        };
+        return adjDecriptor;
+    }
+    App.autoBind = autoBind;
 })(App || (App = {}));
