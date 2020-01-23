@@ -1,4 +1,5 @@
 /// <reference path="base-component.ts" />
+/// <reference path="../val/validator.ts" />
 
 namespace App {
 

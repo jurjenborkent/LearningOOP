@@ -103,6 +103,10 @@ var App;
         }
         return isValid;
     }
+    App.validate = validate;
+})(App || (App = {}));
+var App;
+(function (App) {
     function autoBind(_, _2, descriptor) {
         const originalMethod = descriptor.value;
         const adjDecriptor = {
@@ -114,6 +118,10 @@ var App;
         };
         return adjDecriptor;
     }
+    App.autoBind = autoBind;
+})(App || (App = {}));
+var App;
+(function (App) {
     class Component {
         constructor(templateId, hostElementId, insertAtStart, newElementId) {
             this.templateElement = document.getElementById(templateId);
@@ -129,44 +137,75 @@ var App;
             this.hostElement.insertAdjacentElement(insertAtBeginning ? 'afterbegin' : 'beforeend', this.element);
         }
     }
-    class TaskItem extends Component {
-        constructor(hostId, task) {
-            super('single-task', hostId, false, task.id);
-            this.task = task;
-            console.log(task);
+    App.Component = Component;
+})(App || (App = {}));
+var App;
+(function (App) {
+    class TaskInputForm extends App.Component {
+        constructor() {
+            super('task-input', 'app', true, 'user-input');
+            this.titleInputElement = this.element.querySelector('#title');
+            this.descriptionInputElement = this.element.querySelector('#description');
+            this.pointsInputElement = this.element.querySelector('#points');
             this.configure();
-            this.renderContent();
-        }
-        get points() {
-            if (this.task.points === 1) {
-                return '1 point';
-            }
-            else {
-                return `${this.task.points} points`;
-            }
-        }
-        dragStartHandler(event) {
-            event.dataTransfer.setData('text/plain', this.task.id);
-            event.dataTransfer.effectAllowed = 'move';
-        }
-        dragEndHandler(_) {
-            console.log('DragEnd');
-            console.log(this.task);
         }
         configure() {
-            this.element.addEventListener('dragstart', this.dragStartHandler);
-            this.element.addEventListener('dragend', this.dragEndHandler);
+            this.element.addEventListener('submit', this.submitHandler);
         }
-        renderContent() {
-            this.element.querySelector('h2').textContent = this.task.title;
-            this.element.querySelector('h3').textContent = this.points + ' assigned';
-            this.element.querySelector('p').textContent = this.task.description;
+        renderContent() { }
+        ;
+        gatherFormInput() {
+            const enteredTitle = this.titleInputElement.value;
+            const enteredDescription = this.descriptionInputElement.value;
+            const enteredPoints = this.pointsInputElement.value;
+            const titleValidatable = {
+                value: enteredTitle,
+                required: true,
+            };
+            const descriptionValidatable = {
+                value: enteredDescription,
+                required: true,
+                minLength: 5
+            };
+            const pointsValidatable = {
+                value: +enteredPoints,
+                required: true,
+                min: 0,
+                max: 12
+            };
+            if (!App.validate(titleValidatable) ||
+                !App.validate(descriptionValidatable) ||
+                !App.validate(pointsValidatable)) {
+                alert('Vul het formulier goed in');
+                return;
+            }
+            else {
+                return [enteredTitle, enteredDescription, +enteredPoints];
+            }
+        }
+        clearForm() {
+            this.titleInputElement.value = '';
+            this.descriptionInputElement.value = '';
+            this.pointsInputElement.value = '';
+        }
+        submitHandler(event) {
+            event.preventDefault();
+            const taskInput = this.gatherFormInput();
+            if (Array.isArray(taskInput)) {
+                const [title, desc, points] = taskInput;
+                App.taskState.addTask(title, desc, points);
+                this.clearForm();
+            }
         }
     }
     __decorate([
-        autoBind
-    ], TaskItem.prototype, "dragStartHandler", null);
-    class TaskList extends Component {
+        App.autoBind
+    ], TaskInputForm.prototype, "submitHandler", null);
+    App.TaskInputForm = TaskInputForm;
+})(App || (App = {}));
+var App;
+(function (App) {
+    class TaskList extends App.Component {
         constructor(type) {
             super('tasks-list', 'app', false, `${type}-tasks`);
             this.type = type;
@@ -240,97 +279,67 @@ var App;
             const listEl = document.getElementById(`${this.type}-tasks-list`);
             listEl.innerHTML = '';
             for (const tskItem of this.assignedTasks) {
-                new TaskItem(this.element.querySelector('ul').id, tskItem);
+                new App.TaskItem(this.element.querySelector('ul').id, tskItem);
             }
         }
     }
     __decorate([
-        autoBind
+        App.autoBind
     ], TaskList.prototype, "dragOverHandler", null);
     __decorate([
-        autoBind
+        App.autoBind
     ], TaskList.prototype, "dropHandler", null);
     __decorate([
-        autoBind
+        App.autoBind
     ], TaskList.prototype, "dragLeaveHandler", null);
-    class TaskInputForm extends Component {
-        constructor() {
-            super('task-input', 'app', true, 'user-input');
-            this.titleInputElement = this.element.querySelector('#title');
-            this.descriptionInputElement = this.element.querySelector('#description');
-            this.pointsInputElement = this.element.querySelector('#points');
-            this.configure();
-        }
-        configure() {
-            this.element.addEventListener('submit', this.submitHandler);
-        }
-        renderContent() { }
-        ;
-        gatherFormInput() {
-            const enteredTitle = this.titleInputElement.value;
-            const enteredDescription = this.descriptionInputElement.value;
-            const enteredPoints = this.pointsInputElement.value;
-            const titleValidatable = {
-                value: enteredTitle,
-                required: true,
-            };
-            const descriptionValidatable = {
-                value: enteredDescription,
-                required: true,
-                minLength: 5
-            };
-            const pointsValidatable = {
-                value: +enteredPoints,
-                required: true,
-                min: 0,
-                max: 12
-            };
-            if (!validate(titleValidatable) ||
-                !validate(descriptionValidatable) ||
-                !validate(pointsValidatable)) {
-                alert('Vul het formulier goed in');
-                return;
-            }
-            else {
-                return [enteredTitle, enteredDescription, +enteredPoints];
-            }
-        }
-        clearForm() {
-            this.titleInputElement.value = '';
-            this.descriptionInputElement.value = '';
-            this.pointsInputElement.value = '';
-        }
-        submitHandler(event) {
-            event.preventDefault();
-            const taskInput = this.gatherFormInput();
-            if (Array.isArray(taskInput)) {
-                const [title, desc, points] = taskInput;
-                App.taskState.addTask(title, desc, points);
-                this.clearForm();
-            }
-        }
-    }
-    __decorate([
-        autoBind
-    ], TaskInputForm.prototype, "submitHandler", null);
-    new TaskInputForm();
-    new TaskList('todo');
-    new TaskList('doing');
-    new TaskList('verify');
-    new TaskList('done');
+    App.TaskList = TaskList;
 })(App || (App = {}));
 var App;
 (function (App) {
-    function autoBind(_, _2, descriptor) {
-        const originalMethod = descriptor.value;
-        const adjDecriptor = {
-            configurable: true,
-            get() {
-                const boundFn = originalMethod.bind(this);
-                return boundFn;
+    new App.TaskInputForm();
+    new App.TaskList('todo');
+    new App.TaskList('doing');
+    new App.TaskList('verify');
+    new App.TaskList('done');
+})(App || (App = {}));
+var App;
+(function (App) {
+    class TaskItem extends App.Component {
+        constructor(hostId, task) {
+            super('single-task', hostId, false, task.id);
+            this.task = task;
+            console.log(task);
+            this.configure();
+            this.renderContent();
+        }
+        get points() {
+            if (this.task.points === 1) {
+                return '1 point';
             }
-        };
-        return adjDecriptor;
+            else {
+                return `${this.task.points} points`;
+            }
+        }
+        dragStartHandler(event) {
+            event.dataTransfer.setData('text/plain', this.task.id);
+            event.dataTransfer.effectAllowed = 'move';
+        }
+        dragEndHandler(_) {
+            console.log('DragEnd');
+            console.log(this.task);
+        }
+        configure() {
+            this.element.addEventListener('dragstart', this.dragStartHandler);
+            this.element.addEventListener('dragend', this.dragEndHandler);
+        }
+        renderContent() {
+            this.element.querySelector('h2').textContent = this.task.title;
+            this.element.querySelector('h3').textContent = this.points + ' assigned';
+            this.element.querySelector('p').textContent = this.task.description;
+        }
     }
-    App.autoBind = autoBind;
+    __decorate([
+        App.autoBind
+    ], TaskItem.prototype, "dragStartHandler", null);
+    App.TaskItem = TaskItem;
 })(App || (App = {}));
